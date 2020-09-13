@@ -48,13 +48,13 @@ class Arm:
             ),
             URDFLink(
                 name="backarm",
-                translation_vector=[15 * sign,0,0],
+                translation_vector=[16 * sign,0,0],
                 orientation=[0,0,math.radians(90 * sign)],
                 rotation=[0,0,1]
             ),
             URDFLink(
                 name="forearm",
-                translation_vector=[15 * sign,0,0],
+                translation_vector=[16 * sign,0,0],
                 orientation=[0,0,0],
                 rotation=[0,0,1]
                 )
@@ -136,14 +136,14 @@ class Book:
     def render(self):
         self.compute_positions()
 
-        x_center = self.center_x_cm * PX_PER_CM
-        y_center = self.center_y_cm * PX_PER_CM
-        depth_px = self.depth * PX_PER_CM
+        x_center = int(self.center_x_cm * PX_PER_CM)
+        y_center = int(self.center_y_cm * PX_PER_CM)
+        depth_px = int(self.depth * PX_PER_CM)
 
-        x_left_px = self.x_left * PX_PER_CM
-        y_left_px = self.y_left * PX_PER_CM
-        x_right_px = self.x_right * PX_PER_CM
-        y_right_px = self.y_right * PX_PER_CM
+        x_left_px = int(self.x_left * PX_PER_CM)
+        y_left_px = int(self.y_left * PX_PER_CM)
+        x_right_px = int(self.x_right * PX_PER_CM)
+        y_right_px = int(self.y_right * PX_PER_CM)
 
         pygame.draw.circle(windowSurface, RED, (x_center, y_center), depth_px, 4)
         pygame.draw.line(windowSurface, GREEN, (x_center, y_center), (x_left_px, y_left_px), 4)
