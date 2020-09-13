@@ -1,11 +1,15 @@
 import pygame, sys
+import math
 from pygame.locals import *
 
+PX_PER_CM = 10
+WINDOW_HEIGHT_CM = 50
+WINDOW_WIDTH_CM = 60
 # set up pygame
 pygame.init()
 
 # set up the window
-windowSurface = pygame.display.set_mode((500, 400), 0, 32)
+windowSurface = pygame.display.set_mode((WINDOW_WIDTH_CM * PX_PER_CM, WINDOW_HEIGHT_CM * PX_PER_CM), 0, 32)
 pygame.display.set_caption('Hello world!')
 
 # set up the colors
@@ -15,49 +19,89 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
-# set up fonts
-basicFont = pygame.font.SysFont(None, 48)
 
-# set up the text
-text = basicFont.render('Hello world!', True, WHITE, BLUE)
-textRect = text.get_rect()
-textRect.centerx = windowSurface.get_rect().centerx
-textRect.centery = windowSurface.get_rect().centery
+class Start:
+    def getPx():
+        print("getPx not implemented")
+        assert(false)
 
-# draw the white background onto the surface
-windowSurface.fill(WHITE)
+class PointStart(Start):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+    def getPx(self):
+        return (self.x * PX_PER_CM, self.y * PX_PER_CM)
 
-# draw a green polygon onto the surface
-pygame.draw.polygon(windowSurface, GREEN, ((146, 0), (291, 106), (236, 277), (56, 277), (0, 106)))
+class LinkStart(Start):
+    def __init__(self, child, link, parent_offset_percentage=1, child_offset_percentage=0):
+        self.link = link 
+        self.offset_percentage = (parent_offset_percentage, child_offset_percentage)
+        
 
-# draw some blue lines onto the surface
-pygame.draw.line(windowSurface, BLUE, (60, 60), (120, 60), 4)
-pygame.draw.line(windowSurface, BLUE, (120, 60), (60, 120))
-pygame.draw.line(windowSurface, BLUE, (60, 120), (120, 120), 4)
+    def getPx(self):
+        end = self.link.get_end()
+        origin = self.link.get_origin()
 
-# draw a blue circle onto the surface
-pygame.draw.circle(windowSurface, BLUE, (300, 50), 20, 0)
+        return ((end[0]-origin[0])*self.offset_percentage[0] + origin[0], 
+                (end[1]-origin[1])*self.offset_percentage[0] + origin[1])
 
-# draw a red ellipse onto the surface
-pygame.draw.ellipse(windowSurface, RED, (300, 250, 40, 80), 1)
+class Link:
+    def __init__(self, length, angle):
+        self.length = length
+        self.angle = angle
 
-# draw the text's background rectangle onto the surface
-pygame.draw.rect(windowSurface, RED, (textRect.left - 20, textRect.top - 20, textRect.width + 40, textRect.height + 40))
+    def joint(self, link, parent_offset_percentage=1, child_offset_percentage=0):
+        self.origin = LinkStart(self, link, parent_offset_percentage, child_offset_percentage)
+        return self
 
-# get a pixel array of the surface
-pixArray = pygame.PixelArray(windowSurface)
-pixArray[480][380] = BLACK
-del pixArray
+    def root(self, x, y):
+        self.origin = PointStart(x, y)
+        return self
 
-# draw the text onto the surface
-windowSurface.blit(text, textRect)
+    def angle_rad(self):
+        return math.radians(self.angle)
 
-# draw the window onto the screen
-pygame.display.update()
+    def get_end(self):
+        return (self.length * math.cos(self.angle_rad())*PX_PER_CM + self.get_origin()[0], -1*self.length * math.sin(self.angle_rad())*PX_PER_CM + self.get_origin()[1])
 
-# run the game loop
-while True:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
+    def get_origin(self):
+        return self.origin.getPx()
+
+    def render(self):
+        pygame.draw.line(windowSurface, BLUE, self.get_origin(), self.get_end(), 2)
+
+def run():
+
+    # set up fonts
+    basicFont = pygame.font.SysFont(None, 48)
+    
+    # draw the white background onto the surface
+    windowSurface.fill(WHITE)
+
+    root = Link(15, 0).root(WINDOW_WIDTH_CM/2-15/2, WINDOW_HEIGHT_CM-5)
+    left_backarm = Link(15, 180-60).joint(root, 0.0)
+    right_backarm = Link(15, 60).joint(root)
+    left_forearm = Link(15,  60).joint(left_backarm)
+    right_forearm = Link(15, 180-60).joint(right_backarm)
+    left_wrist = Link(5, 0).joint(left_forearm, 1, 0.5)
+    right_wrist = Link(5,  180).joint(right_forearm, 1, 0.5)
+
+    root.render()
+    left_backarm.render()
+    right_backarm.render()
+    left_forearm.render()
+    right_forearm.render()
+    left_wrist.render()
+    right_wrist.render()
+
+    # draw the window onto the screen
+    pygame.display.update()
+
+    # run the game loop
+    while True:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+
+run()
