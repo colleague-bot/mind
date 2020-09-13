@@ -8,13 +8,15 @@ from ikpy.link import OriginLink, URDFLink
 import matplotlib.pyplot
 from mpl_toolkits.mplot3d import Axes3D
 import math
+import time
 
 PX_PER_CM = 20
 ORIGIN_OFFSET_X = 25
 ORIGIN_OFFSET_Y = 5
-WINDOW_HEIGHT_CM = 40
+WINDOW_HEIGHT_CM = 50
 WINDOW_WIDTH_CM = 50
 WINDOW_HEIGHT_PX = WINDOW_HEIGHT_CM * PX_PER_CM
+DISTANCE_FROM_BOOK = 15
 # set up pygame
 pygame.init()
 
@@ -67,20 +69,22 @@ class Arm:
             y = xyEtc[1]
             rv.append((x,y))
         return rv
+
+    def go_directly_to_position(self, x, y):
+        joint_positions = self.chain.inverse_kinematics(target_position=[x,y,0], target_orientation=[0,0,0])
+        self.state = joint_positions
     
     def render(self):
         positions = self.get_positions()
         lastX = 0 + ORIGIN_OFFSET_X 
         lastY = 0 + ORIGIN_OFFSET_Y
         for position in positions:
-            print(position[0],position[1])
             x = position[0] + ORIGIN_OFFSET_X
             y = position[1] + ORIGIN_OFFSET_Y
             pygameLastX = lastX * PX_PER_CM 
             pygameLastY = WINDOW_HEIGHT_PX - lastY * PX_PER_CM  
             pygameX = x * PX_PER_CM 
             pygameY = WINDOW_HEIGHT_PX - y * PX_PER_CM
-            print(pygameLastX, pygameLastY, pygameX, pygameY)
             pygame.draw.line(windowSurface, BLUE, (pygameLastX, pygameLastY), (pygameX, pygameY))
             lastX = x 
             lastY = y
@@ -109,10 +113,41 @@ class Bot:
         bot.right_arm.chain.plot([0,0,0,0], ax)
 
 class Book:
-    def __init__(self):
-        pass
+    def __init__(self, depth):
+        self.depth = depth
+        self.openness = 90
+        self.center_x_cm = ORIGIN_OFFSET_X
+        self.center_y_cm = WINDOW_HEIGHT_CM - ORIGIN_OFFSET_Y - DISTANCE_FROM_BOOK - self.depth
+        self.compute_positions()
+
+    def compute_positions(self):
+
+        deg_off = self.openness/2
+        self.x_left = (self.center_x_cm - math.sin(math.radians(deg_off))*self.depth)
+        self.y_left = (self.center_y_cm + math.cos(math.radians(deg_off))*self.depth)
+        self.x_right = (self.center_x_cm + math.sin(math.radians(deg_off))*self.depth)
+        self.y_right = (self.center_y_cm + math.cos(math.radians(deg_off))*self.depth)
+
+        self.x_left_kin = self.x_left - self.center_x_cm
+        self.y_left_kin = WINDOW_HEIGHT_CM - self.y_left - ORIGIN_OFFSET_Y
+        self.x_right_kin = self.x_right - self.center_x_cm
+        self.y_right_kin = WINDOW_HEIGHT_CM - self.y_right - ORIGIN_OFFSET_Y
+
     def render(self):
-        pass
+        self.compute_positions()
+
+        x_center = self.center_x_cm * PX_PER_CM
+        y_center = self.center_y_cm * PX_PER_CM
+        depth_px = self.depth * PX_PER_CM
+
+        x_left_px = self.x_left * PX_PER_CM
+        y_left_px = self.y_left * PX_PER_CM
+        x_right_px = self.x_right * PX_PER_CM
+        y_right_px = self.y_right * PX_PER_CM
+
+        pygame.draw.circle(windowSurface, RED, (x_center, y_center), depth_px, 4)
+        pygame.draw.line(windowSurface, GREEN, (x_center, y_center), (x_left_px, y_left_px), 4)
+        pygame.draw.line(windowSurface, GREEN, (x_center, y_center), (x_right_px, y_right_px), 4)
 
 def run():
 
@@ -127,18 +162,29 @@ def run():
     bot = Bot()
     bot.render()
 
-    book = Book()
+    book = Book(15)
     book.render()
 
     # draw the window onto the screen
     pygame.display.update()
 
+    bot.left_arm.go_directly_to_position(4, 40)
+    
     last_render = pygame.time.get_ticks()
     # run the game loop
     matplotlib.pyplot.show()
 
+    book_direction = 1
     while True:
         clock.tick(60)
+        if(book.openness == 5 or book.openness == 160):
+            book_direction *= -1
+
+        book.openness += book_direction
+        book.compute_positions()
+        bot.left_arm.go_directly_to_position(book.x_left_kin, book.y_left_kin)
+        bot.right_arm.go_directly_to_position(book.x_right_kin, book.y_right_kin)
+        
         windowSurface.fill(WHITE)
         bot.render()
         book.render()
