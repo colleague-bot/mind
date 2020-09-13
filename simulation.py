@@ -1,5 +1,6 @@
 import pygame, sys
 import math
+import pygame.time
 from pygame.locals import *
 
 PX_PER_CM = 10
@@ -47,18 +48,44 @@ class LinkStart(Start):
         return ((end[0]-origin[0])*self.offset_percentage[0] + origin[0] + child_start_offset[0], 
                 (end[1]-origin[1])*self.offset_percentage[0] + origin[1] + child_start_offset[1])
 
+class Joint:
+    def __init__(self, parent, child, start_angle):
+        self.start_angle = start_angle
+        self.parent = parent
+        self.child = child
+        self.angle = 0
+
+    def dumb_move_impl(self, angle):
+        self.child.angle += angle
+        self.child.update_origin()
+        for child in self.child.children:
+            child.joint.move(angle)
+
+    def move (self, angle):
+        self.angle = (self.angle + angle) % 360
+        self.dumb_move_impl(angle)
+        
 class Link:
     def __init__(self, length, angle):
         self.length = length
         self.angle = angle
+        self.children = []
+
+    def update_origin(self):
+        self.origin = LinkStart(self, self.parent, self.parent_offset_percentage, self.child_offset_percentage)
 
     def joint(self, link, parent_offset_percentage=1, child_offset_percentage=0):
-        self.origin = LinkStart(self, link, parent_offset_percentage, child_offset_percentage)
+        self.parent = link
+        self.parent_offset_percentage = parent_offset_percentage
+        self.child_offset_percentage = child_offset_percentage
+        self.update_origin()
+        self.joint = Joint(link, self, 0)
+        self.parent.children.append(self)
         return self
 
     def getStartOffset(self, percentage):
         return (self.length * math.cos(self.angle_rad()) * percentage * -1 * PX_PER_CM,
-                self.length * math.sin(self.angle_rad()) * percentage * -1 * PX_PER_CM)
+                self.length * math.sin(self.angle_rad()) * percentage * 1 * PX_PER_CM)
 
     def root(self, x, y):
         self.origin = PointStart(x, y)
@@ -72,7 +99,6 @@ class Link:
 
     def get_origin(self):
         rv = self.origin.getPx()
-        print(rv)
         return self.origin.getPx()
 
     def render(self, color=BLUE):
@@ -118,6 +144,8 @@ class Book:
 
 def run():
 
+    clock = pygame.time.Clock()
+
     # set up fonts
     basicFont = pygame.font.SysFont(None, 48)
     
@@ -133,8 +161,15 @@ def run():
     # draw the window onto the screen
     pygame.display.update()
 
+    last_render = pygame.time.get_ticks()
     # run the game loop
     while True:
+        clock.tick(60)
+        windowSurface.fill(WHITE)
+        bot.left_wrist.joint.move(2)
+        bot.render()
+        book.render()
+        pygame.display.update()
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
