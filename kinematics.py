@@ -9,9 +9,12 @@ import matplotlib.pyplot
 from mpl_toolkits.mplot3d import Axes3D
 import math
 
-PX_PER_CM = 10
-WINDOW_HEIGHT_CM =1 
-WINDOW_WIDTH_CM =1 
+PX_PER_CM = 20
+ORIGIN_OFFSET_X = 25
+ORIGIN_OFFSET_Y = 5
+WINDOW_HEIGHT_CM = 40
+WINDOW_WIDTH_CM = 50
+WINDOW_HEIGHT_PX = WINDOW_HEIGHT_CM * PX_PER_CM
 # set up pygame
 pygame.init()
 
@@ -28,6 +31,7 @@ BLUE = (0, 0, 255)
 
 class Arm:
     def __init__(self, direction):
+        self.state = [0,0,0,0]
         if direction == "left":
             sign = -1
         else:
@@ -54,14 +58,47 @@ class Arm:
                 )
         ])
 
+    def get_positions(self):
+        rv = []
+        positions = self.chain.forward_kinematics(self.state, full_kinematics=True)
+        for position in positions[1:]:
+            xyEtc = position[:,3]
+            x = xyEtc[0]
+            y = xyEtc[1]
+            rv.append((x,y))
+        return rv
+    
+    def render(self):
+        positions = self.get_positions()
+        lastX = 0 + ORIGIN_OFFSET_X 
+        lastY = 0 + ORIGIN_OFFSET_Y
+        for position in positions:
+            print(position[0],position[1])
+            x = position[0] + ORIGIN_OFFSET_X
+            y = position[1] + ORIGIN_OFFSET_Y
+            pygameLastX = lastX * PX_PER_CM 
+            pygameLastY = WINDOW_HEIGHT_PX - lastY * PX_PER_CM  
+            pygameX = x * PX_PER_CM 
+            pygameY = WINDOW_HEIGHT_PX - y * PX_PER_CM
+            print(pygameLastX, pygameLastY, pygameX, pygameY)
+            pygame.draw.line(windowSurface, BLUE, (pygameLastX, pygameLastY), (pygameX, pygameY))
+            lastX = x 
+            lastY = y
+
+
 class Bot:
     def __init__(self):
         self.left_arm = Arm("left")
         self.right_arm = Arm("right")
 
+    def get_positions(self):
+        rv = []
+        positions = self.left_arm.get_positions()
+        
     def render(self):
-        pass
-
+        self.left_arm.render()
+        self.right_arm.render()
+   
     def step(self):
         pass
 
@@ -96,8 +133,6 @@ def run():
     # draw the window onto the screen
     pygame.display.update()
 
-    bot.plot()
-
     last_render = pygame.time.get_ticks()
     # run the game loop
     matplotlib.pyplot.show()
@@ -105,7 +140,7 @@ def run():
     while True:
         clock.tick(60)
         windowSurface.fill(WHITE)
-        bot.step()
+        bot.render()
         book.render()
         pygame.display.update()
         for event in pygame.event.get():
