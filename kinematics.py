@@ -26,52 +26,38 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
+class Arm:
+    def __init__(self, direction):
+        if direction == "left":
+            sign = -1
+        else:
+            sign = 1
+        self.chain = Chain(name=direction + "_arm", links = [
+            OriginLink(),
+            URDFLink(
+                name="shoulder",
+                translation_vector=[8 * sign, 0, 0],
+                orientation=[0, 0, math.radians(30 * sign)],
+                rotation=[0, 0, 1],
+            ),
+            URDFLink(
+                name="backarm",
+                translation_vector=[15 * sign,0,0],
+                orientation=[0,0,math.radians(90 * sign)],
+                rotation=[0,0,1]
+            ),
+            URDFLink(
+                name="forearm",
+                translation_vector=[15 * sign,0,0],
+                orientation=[0,0,0],
+                rotation=[0,0,1]
+                )
+        ])
+
 class Bot:
     def __init__(self):
-        self.left_arm = Chain(name='left_arm', links = [
-            OriginLink(),
-            URDFLink(
-                name="shoulder",
-                translation_vector=[-8, 0, 0],
-                orientation=[0, 0, math.radians(-30)],
-                rotation=[0, 0, 1],
-            ),
-            URDFLink(
-                name="backarm",
-                translation_vector=[-15,0,0],
-                orientation=[0,0,math.radians(-90)],
-                rotation=[0,0,1]
-            ),
-            URDFLink(
-                name="forearm",
-                translation_vector=[-15,0,0],
-                orientation=[0,0,0],
-                rotation=[0,0,1]
-                )
-        ])
-
-        self.right_arm = Chain(name='right_arm', links = [
-            OriginLink(),
-            URDFLink(
-                name="shoulder",
-                translation_vector=[8, 0, 0],
-                orientation=[0, 0, math.radians(30)],
-                rotation=[0, 0, 1],
-            ),
-            URDFLink(
-                name="backarm",
-                translation_vector=[15,0,0],
-                orientation=[0,0,math.radians(90)],
-                rotation=[0,0,1]
-            ),
-            URDFLink(
-                name="forearm",
-                translation_vector=[15,0,0],
-                orientation=[0,0,0],
-                rotation=[0,0,1]
-                )
-        ])
-
+        self.left_arm = Arm("left")
+        self.right_arm = Arm("right")
 
     def render(self):
         pass
@@ -79,7 +65,12 @@ class Bot:
     def step(self):
         pass
 
-    
+    def plot(bot):
+        ax = matplotlib.pyplot.figure().add_subplot(111, projection='3d')
+        ax.set(xlim=(-30,30), ylim=(-30,30))
+        bot.left_arm.chain.plot([0,0,0,0], ax)
+        bot.right_arm.chain.plot([0,0,0,0], ax)
+
 class Book:
     def __init__(self):
         pass
@@ -105,13 +96,10 @@ def run():
     # draw the window onto the screen
     pygame.display.update()
 
+    bot.plot()
+
     last_render = pygame.time.get_ticks()
     # run the game loop
-    ax = matplotlib.pyplot.figure().add_subplot(111, projection='3d')
-    ax.set(xlim=(-30,30), ylim=(-30,30))
-    bot.left_arm.plot([0,0,0,0], ax)
-    bot.right_arm.plot([0,0,0,0], ax)
-
     matplotlib.pyplot.show()
 
     while True:
