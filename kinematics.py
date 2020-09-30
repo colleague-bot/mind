@@ -73,27 +73,31 @@ class Arm:
     def go_directly_to_position(self, x, y):
         joint_positions = self.chain.inverse_kinematics(target_position=[x,y,0], target_orientation=[0,0,0])
         self.state = joint_positions
-    
+
+class PyGameArm(Arm):
+    def __init__(self, direction):
+        super().__init__(direction)
     def render(self):
-        positions = self.get_positions()
-        lastX = 0 + ORIGIN_OFFSET_X 
-        lastY = 0 + ORIGIN_OFFSET_Y
-        for position in positions:
-            x = position[0] + ORIGIN_OFFSET_X
-            y = position[1] + ORIGIN_OFFSET_Y
-            pygameLastX = lastX * PX_PER_CM 
-            pygameLastY = WINDOW_HEIGHT_PX - lastY * PX_PER_CM  
-            pygameX = x * PX_PER_CM 
-            pygameY = WINDOW_HEIGHT_PX - y * PX_PER_CM
-            pygame.draw.line(windowSurface, BLUE, (pygameLastX, pygameLastY), (pygameX, pygameY))
-            lastX = x 
-            lastY = y
+            positions = self.get_positions()
+            lastX = 0 + ORIGIN_OFFSET_X 
+            lastY = 0 + ORIGIN_OFFSET_Y
+            for position in positions:
+                x = position[0] + ORIGIN_OFFSET_X
+                y = position[1] + ORIGIN_OFFSET_Y
+                pygameLastX = lastX * PX_PER_CM 
+                pygameLastY = WINDOW_HEIGHT_PX - lastY * PX_PER_CM  
+                pygameX = x * PX_PER_CM 
+                pygameY = WINDOW_HEIGHT_PX - y * PX_PER_CM
+                pygame.draw.line(windowSurface, BLUE, (pygameLastX, pygameLastY), (pygameX, pygameY))
+                lastX = x 
+                lastY = y
+
 
 
 class Bot:
     def __init__(self):
-        self.left_arm = Arm("left")
-        self.right_arm = Arm("right")
+        self.left_arm = PyGameArm("left")
+        self.right_arm = PyGameArm("right")
 
     def get_positions(self):
         rv = []
@@ -176,7 +180,7 @@ def run():
 
     book_direction = 1
     while True:
-        clock.tick(60)
+        clock.tick(120)
         if(book.openness == 5 or book.openness == 160):
             book_direction *= -1
 
