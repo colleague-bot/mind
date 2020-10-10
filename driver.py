@@ -44,11 +44,16 @@ class Stepper:
             time.sleep(0.001)
 
 class Servo:
-    def __init__(self, n):
+    def __init__(self, n, home):
         self.driver = kit.servo[n]
+        self.home = home
+        self.moveHome()
 
     def move(self, angle):
         self.driver.angle = angle
+
+    def moveHome(self):
+        self.driver.angle = self.home
 
 
 
@@ -56,21 +61,16 @@ class Bot():
     def __init__(self):
         self.rightShoulder = Stepper(26, 19, 13)
         self.leftShoulder = Stepper(21, 20, 16)
-        self.rightElbow = Servo(0)
-        self.rightElbow.move(180)
-        self.leftElbow = Servo(1)
-        self.leftElbow.move(0)
-        self.headZ = Servo(2)
-        self.headZ.move(90)
-        self.headY = Servo(3)
-        self.headY.move(90)
-        self.rightFingers = Servo(6)
-        self.rightFingers.move(180)
-        self.rightThumb = Servo(7)
-        self.rightThumb.move(180)
-        self.leftWrist = Servo(5)
-        self.leftWrist.move(180)
-        self.rightWrist = Servo(4)
+        self.rightElbow = Servo(0, 180)
+        self.leftElbow = Servo(1, 0)
+        self.headZ = Servo(2, 90)
+        self.headY = Servo(3, 60)
+        self.leftFingers = Servo(6, 180)
+        self.leftThumb = Servo(7, 180)
+        self.leftWrist = Servo(5, 120)
+        self.rightWrist = Servo(4, 60)
+        self.rightFingers = Servo(8, 0)
+        self.rightThumb = Servo(9, 90)
         
 
     def die(self):
