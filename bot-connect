@@ -1,6 +1,5 @@
 #!/bin/bash
 
-sudo su
-IP = $(nmap -sn 10.10.20.0/24 | grep -B 2 Raspberry Pi | grep -o [0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*)
-exit
-ssh pi@"$IP"
+
+getIp=$(sudo nmap -sn 10.10.20.0/24 | grep -B 2 'Raspberry Pi' | head -n 1 | grep -o '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*')
+ssh pi@$getIp
