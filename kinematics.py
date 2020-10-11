@@ -92,8 +92,6 @@ class PyGameArm(Arm):
                 lastX = x 
                 lastY = y
 
-
-
 class Bot:
     def __init__(self):
         self.left_arm = PyGameArm("left")
@@ -115,6 +113,11 @@ class Bot:
         ax.set(xlim=(-30,30), ylim=(-30,30))
         bot.left_arm.chain.plot([0,0,0,0], ax)
         bot.right_arm.chain.plot([0,0,0,0], ax)
+
+    def serialize(self):
+        positions = self.left_arm.get_positions() + self.right_arm.get_positions
+        return positions.join(", ")
+         
 
 class Book:
     def __init__(self, depth):
