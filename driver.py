@@ -44,12 +44,17 @@ class Stepper:
             time.sleep(0.001)
 
 class Servo:
-    def __init__(self, n, home):
+    def __init__(self, n, home, limits=(0, 180)):
         self.driver = kit.servo[n]
         self.home = home
         self.moveHome()
+        self.min_limit = limits[0]
+        self.max_limit = limits[1]
 
     def move(self, angle):
+        if angle < self.min_limit or angle > self.max_limit:
+            print("angle, %d is outside limits (%d, %d)" % (angle, self.min_limit, self.max_limit))
+            return
         self.driver.angle = angle
 
     def moveHome(self):
@@ -61,16 +66,16 @@ class Bot():
     def __init__(self):
         self.rightShoulder = Stepper(26, 19, 13)
         self.leftShoulder = Stepper(21, 20, 16)
-        self.rightElbow = Servo(0, 180)
-        self.leftElbow = Servo(1, 0)
-        self.headZ = Servo(2, 90)
-        self.headY = Servo(3, 60)
-        self.leftFingers = Servo(6, 180)
-        self.leftThumb = Servo(7, 180)
-        self.leftWrist = Servo(5, 120)
-        self.rightWrist = Servo(4, 60)
-        self.rightFingers = Servo(8, 0)
-        self.rightThumb = Servo(9, 90)
+        self.rightElbow = Servo(0, home=180, limits=(0, 180))
+        self.leftElbow = Servo(1, home=0, limits=(0,180))
+        self.headZ = Servo(2, home=90, limits=(0, 180))
+        self.headY = Servo(3, home=60, limits=(60, 180))
+        self.leftFingers = Servo(6, home=180, limits=(90, 180))
+        self.leftThumb = Servo(10, home=110, limits=(0, 180))
+        self.leftWrist = Servo(5, home=120, limits=(0, 180))
+        self.rightWrist = Servo(4, home=60, limits=(0,180))
+        self.rightFingers = Servo(8, home=0, limits=(0, 115))
+        self.rightThumb = Servo(9, home=90, limits=(0, 180))
         
 
     def die(self):
