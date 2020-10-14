@@ -3,6 +3,7 @@ import math
 import pygame.time
 from pygame.locals import *
 from collections import deque
+import numpy
 from ikpy.chain import Chain
 from ikpy.link import OriginLink, URDFLink
 import matplotlib.pyplot
@@ -115,8 +116,8 @@ class Bot:
         bot.right_arm.chain.plot([0,0,0,0], ax)
 
     def serialize(self):
-        positions = self.left_arm.get_positions() + self.right_arm.get_positions
-        return positions.join(", ")
+        positions = numpy.concatenate([self.left_arm.state, self.right_arm.state])
+        return ", ".join(map(str, positions))
          
 
 class Book:
@@ -191,9 +192,10 @@ def run():
         book.compute_positions()
         bot.left_arm.go_directly_to_position(book.x_left_kin, book.y_left_kin)
         bot.right_arm.go_directly_to_position(book.x_right_kin, book.y_right_kin)
-        
+       
         windowSurface.fill(WHITE)
         bot.render()
+        print(bot.serialize())
         book.render()
         pygame.display.update()
         for event in pygame.event.get():
