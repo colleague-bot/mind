@@ -14,7 +14,7 @@ WINDOW_HEIGHT_CM = 50
 WINDOW_WIDTH_CM = 50
 WINDOW_HEIGHT_PX = WINDOW_HEIGHT_CM * PX_PER_CM
 DISTANCE_FROM_BOOK = 15
-# set up pygame
+# set up pygame if len(sys.argv) > 1 and sys.argv[1] == "--pygame":
 if len(sys.argv) > 1 and sys.argv[1] == "--pygame":
     has_pygame = True
 else:
@@ -54,7 +54,7 @@ def tick(ticksPerSec):
 
 class Arm:
     def __init__(self, direction):
-        self.state = [0,0,0,0]
+        self.state = [0,0,0,0,0]
         if direction == "left":
             sign = -1
         else:
@@ -76,6 +76,12 @@ class Arm:
             URDFLink(
                 name="forearm",
                 translation_vector=[16 * sign,0,0],
+                orientation=[0,0,math.radians(30*sign)],
+                rotation=[0,0,1]
+            ),
+            URDFLink(
+                name="hand",
+                translation_vector=[9 * sign,0,0],
                 orientation=[0,0,0],
                 rotation=[0,0,1]
                 ),
@@ -91,8 +97,11 @@ class Arm:
             rv.append((x,y))
         return rv
 
-    def go_directly_to_position(self, x, y):
-        joint_positions = self.chain.inverse_kinematics(target_position=[x,y,0], target_orientation=[0,0,0])
+    def go_directly_to_position(self, x, y, book):
+        rad = math.radians(book.openness/2)
+        if(x < book.center_x_cm):
+            rad *= -1
+        joint_positions = self.chain.inverse_kinematics(target_position=[x,y,0], target_orientation=[0,0,0.2])
         self.state = joint_positions
 
 class PyGameArm(Arm):
@@ -133,8 +142,8 @@ class Bot:
     def plot(bot):
         ax = matplotlib.pyplot.figure().add_subplot(111, projection='3d')
         ax.set(xlim=(-30,30), ylim=(-30,30))
-        bot.left_arm.chain.plot([0,0,0,0], ax)
-        bot.right_arm.chain.plot([0,0,0,0], ax)
+        bot.left_arm.chain.plot([0,0,0,0,0], ax)
+        bot.right_arm.chain.plot([0,0,0,0,0], ax)
 
     def serialize(self):
         positions = numpy.concatenate([self.left_arm.state, self.right_arm.state])
@@ -201,7 +210,7 @@ def run():
         # draw the window onto the screen
         pygame.display.update()
 
-    bot.left_arm.go_directly_to_position(4, 40)
+    bot.left_arm.go_directly_to_position(4, 40, book)
     
     if(has_pygame):
         last_render = pygame.time.get_ticks()
@@ -221,8 +230,8 @@ def run():
 
         book.openness += book_direction * speed
         book.compute_positions()
-        bot.left_arm.go_directly_to_position(book.x_left_kin, book.y_left_kin)
-        bot.right_arm.go_directly_to_position(book.x_right_kin, book.y_right_kin)
+        bot.left_arm.go_directly_to_position(book.x_left_kin, book.y_left_kin, book)
+        bot.right_arm.go_directly_to_position(book.x_right_kin, book.y_right_kin, book)
        
         if(has_pygame):
             windowSurface.fill(WHITE)
