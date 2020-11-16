@@ -1,0 +1,1 @@
+python2 kinematics.py | python3 driver.py

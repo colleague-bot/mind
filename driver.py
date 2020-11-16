@@ -2,6 +2,7 @@ from adafruit_servokit import ServoKit
 from gpiozero import OutputDevice
 import time
 from threading import Thread
+import sys
 
 kit = ServoKit(channels=16)
 
@@ -100,3 +101,11 @@ def dance():
 
 
         
+def read_from_stdin():
+    while true:
+        print(sys.stdin.readline())
+
+argument = "to be added"
+
+if len(sys.argv) > && sys.argv[1] == "--stdin":
+    read_from_stdin()
