@@ -3,6 +3,7 @@ from gpiozero import OutputDevice
 import time
 from threading import Thread
 import sys
+import atexit
 
 kit = ServoKit(channels=16)
 
@@ -13,6 +14,7 @@ class Stepper:
         self.direction = OutputDevice(directionPin)
         self.pulse = OutputDevice(pulsePin)
         self.pos = 0
+        self.home = 0
         self.on()
 
     def step(self):
@@ -35,6 +37,7 @@ class Stepper:
     def move(self, angle):
         print("moving")
         toMove = angle - self.pos
+        self.pos = self.pos + toMove
         if(toMove > 0):
             self.dirPos()
         else:
@@ -43,6 +46,11 @@ class Stepper:
         for i in range(int(toMove*self.stepsPerDeg) * 2):
             self.step()
             time.sleep(0.001)
+
+    def moveRelative(self, angle):
+        print("pos: {}", self.pos)
+        print("angle: {}", angle)
+        self.move(self.home + angle)
 
 class Servo:
     def __init__(self, n, home, limits=(0, 180)):
@@ -58,6 +66,9 @@ class Servo:
             return
         self.driver.angle = angle
 
+    def moveRelative(self, angle):
+        self.move(self.home + angle)
+
     def moveHome(self):
         self.driver.angle = self.home
 
@@ -67,8 +78,34 @@ class Bot():
     def __init__(self):
         self.rightShoulder = Stepper(26, 19, 13)
         self.leftShoulder = Stepper(21, 20, 16)
-        self.rightElbow = Servo(0, home=180, limits=(0, 180))
-        self.leftElbow = Servo(1, home=0, limits=(0,180))
+        self.rightElbow = Servo(0, home=120, limits=(0, 180))
+        self.leftElbow = Servo(1, home=60, limits=(0,180))
+        self.rightShoulder.off()
+        self.leftShoulder.off()
+        print("Set shoulders at home")
+        print("3")
+        time.sleep(1)
+        print("2")
+        time.sleep(1)
+        print("1")
+        time.sleep(1)
+        print("locking shoulders")
+        self.rightShoulder.on()
+        self.leftShoulder.on()
+        time.sleep(1)
+        print("3")
+        time.sleep(1)
+        print("2")
+        time.sleep(1)
+        print("1")
+        time.sleep(1)
+
+        Thread(target = lambda: bot.rightShoulder.move(90)).start()
+        Thread(target = lambda: bot.leftShoulder.move(-90)).start()
+        self.rightShoulder.move(60)
+        self.leftShoulder.move(-60)
+        self.rightElbow = Servo(0, home=120, limits=(0, 180))
+        self.leftElbow = Servo(1, home=60, limits=(0,180))
         self.headZ = Servo(2, home=90, limits=(0, 180))
         self.headY = Servo(3, home=60, limits=(60, 180))
         self.leftFingers = Servo(6, home=180, limits=(90, 180))
@@ -86,6 +123,12 @@ class Bot():
 
 bot = Bot()
 
+def at_exit():
+    global bot
+    bot.rightShoulder.off()
+    bot.leftShoulder.off()
+atexit.register(at_exit)
+
 def dance():
     for i in range(20):
         if(i%2 == 0):
@@ -102,10 +145,20 @@ def dance():
 
         
 def read_from_stdin():
-    while true:
-        print(sys.stdin.readline())
+    while True:
+        print("loop")
+        data = sys.stdin.readline()
+        pos = list(map(float, data.split(",")))
+        # 0.0, -0.47200979958218836, -9.597039838836727, 0.0, 0.0, 0.47200961334342845, 9.597039606508062, 0.0
+        Thread(target = lambda: bot.leftShoulder.moveRelative(pos[1])).start()
+        Thread(target = lambda: bot.leftElbow.moveRelative(pos[2])).start()
+        Thread(target = lambda: bot.leftWrist.moveRelative(pos[3])).start()
+        Thread(target = lambda: bot.rightShoulder.moveRelative(pos[5])).start()
+        Thread(target = lambda: bot.rightElbow.moveRelative(pos[6])).start()
+        Thread(target = lambda: bot.rightWrist.moveRelative(pos[7])).start()
+
 
 argument = "to be added"
 
-if len(sys.argv) > && sys.argv[1] == "--stdin":
+if len(sys.argv) > 1 and sys.argv[1] == "--stdin":
     read_from_stdin()

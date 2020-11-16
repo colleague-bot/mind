@@ -1,15 +1,11 @@
-import pygame, sys
 import math
-import pygame.time
-from pygame.locals import *
 from collections import deque
 import numpy
 from ikpy.chain import Chain
 from ikpy.link import OriginLink, URDFLink
-import matplotlib.pyplot
-from mpl_toolkits.mplot3d import Axes3D
 import math
 import time
+import sys
 
 PX_PER_CM = 20
 ORIGIN_OFFSET_X = 25
@@ -19,11 +15,27 @@ WINDOW_WIDTH_CM = 50
 WINDOW_HEIGHT_PX = WINDOW_HEIGHT_CM * PX_PER_CM
 DISTANCE_FROM_BOOK = 15
 # set up pygame
-pygame.init()
+if len(sys.argv) > 1 and sys.argv[1] == "--pygame":
+    has_pygame = True
+else:
+    has_pygame = False
 
-# set up the window
-windowSurface = pygame.display.set_mode((WINDOW_WIDTH_CM * PX_PER_CM, WINDOW_HEIGHT_CM * PX_PER_CM), 0, 32)
-pygame.display.set_caption('Hello world!')
+if len(sys.argv) > 1 and sys.argv[1] == "--matplotlib":
+    has_matplotlib = True
+else:
+    has_matplotlib = False
+
+if(has_matplotlib):
+    import matplotlib.pyplot
+    from mpl_toolkits.mplot3d import Axes3D
+if(has_pygame):
+    import pygame.time
+    import pygame, sys
+    from pygame.locals import *
+    pygame.init()
+    # set up the window
+    windowSurface = pygame.display.set_mode((WINDOW_WIDTH_CM * PX_PER_CM, WINDOW_HEIGHT_CM * PX_PER_CM), 0, 32)
+    pygame.display.set_caption('Hello world!')
 
 # set up the colors
 BLACK = (0, 0, 0)
@@ -31,6 +43,14 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+
+last_tick = None
+def tick(ticksPerSec):
+    global last_tick 
+    ms = time.time() * 1000
+    while(last_tick != None and ms < (last_tick + 1000.0/ticksPerSec)):
+        ms = time.time() * 1000
+    last_tick = ms
 
 class Arm:
     def __init__(self, direction):
@@ -58,7 +78,7 @@ class Arm:
                 translation_vector=[16 * sign,0,0],
                 orientation=[0,0,0],
                 rotation=[0,0,1]
-                )
+                ),
         ])
 
     def get_positions(self):
@@ -89,7 +109,8 @@ class PyGameArm(Arm):
                 pygameLastY = WINDOW_HEIGHT_PX - lastY * PX_PER_CM  
                 pygameX = x * PX_PER_CM 
                 pygameY = WINDOW_HEIGHT_PX - y * PX_PER_CM
-                pygame.draw.line(windowSurface, BLUE, (pygameLastX, pygameLastY), (pygameX, pygameY))
+                if(has_pygame):
+                    pygame.draw.line(windowSurface, BLUE, (pygameLastX, pygameLastY), (pygameX, pygameY))
                 lastX = x 
                 lastY = y
 
@@ -117,6 +138,7 @@ class Bot:
 
     def serialize(self):
         positions = numpy.concatenate([self.left_arm.state, self.right_arm.state])
+        positions = map(math.degrees, positions)
         return ", ".join(map(str, positions))
          
 
@@ -153,19 +175,21 @@ class Book:
         x_right_px = int(self.x_right * PX_PER_CM)
         y_right_px = int(self.y_right * PX_PER_CM)
 
-        pygame.draw.circle(windowSurface, RED, (x_center, y_center), depth_px, 4)
-        pygame.draw.line(windowSurface, GREEN, (x_center, y_center), (x_left_px, y_left_px), 4)
-        pygame.draw.line(windowSurface, GREEN, (x_center, y_center), (x_right_px, y_right_px), 4)
+        if(has_pygame):
+            pygame.draw.circle(windowSurface, RED, (x_center, y_center), depth_px, 4)
+            pygame.draw.line(windowSurface, GREEN, (x_center, y_center), (x_left_px, y_left_px), 4)
+            pygame.draw.line(windowSurface, GREEN, (x_center, y_center), (x_right_px, y_right_px), 4)
 
 def run():
 
-    clock = pygame.time.Clock()
+    if(has_pygame):
+        clock = pygame.time.Clock()
 
-    # set up fonts
-    basicFont = pygame.font.SysFont(None, 48)
-    
-    # draw the white background onto the surface
-    windowSurface.fill(WHITE)
+        # set up fonts
+        basicFont = pygame.font.SysFont(None, 48)
+        
+        # draw the white background onto the surface
+        windowSurface.fill(WHITE)
 
     bot = Bot()
     bot.render()
@@ -173,34 +197,41 @@ def run():
     book = Book(15)
     book.render()
 
-    # draw the window onto the screen
-    pygame.display.update()
+    if(has_pygame):
+        # draw the window onto the screen
+        pygame.display.update()
 
     bot.left_arm.go_directly_to_position(4, 40)
     
-    last_render = pygame.time.get_ticks()
+    if(has_pygame):
+        last_render = pygame.time.get_ticks()
     # run the game loop
-    matplotlib.pyplot.show()
+    if(has_matplotlib):
+        matplotlib.pyplot.show()
 
     book_direction = 1
+    speed = 4
+    time.sleep(10)
     while True:
-        clock.tick(120)
-        if(book.openness == 5 or book.openness == 160):
+        tick(8)
+        if(book.openness <= 5 or book.openness >= 160):
             book_direction *= -1
 
-        book.openness += book_direction
+        book.openness += book_direction * speed
         book.compute_positions()
         bot.left_arm.go_directly_to_position(book.x_left_kin, book.y_left_kin)
         bot.right_arm.go_directly_to_position(book.x_right_kin, book.y_right_kin)
        
-        windowSurface.fill(WHITE)
+        if(has_pygame):
+            windowSurface.fill(WHITE)
         bot.render()
-        print(bot.serialize())
+        print(bot.serialize(), flush=True)
         book.render()
-        pygame.display.update()
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
+        if(has_pygame):
+            pygame.display.update()
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
 
 run()

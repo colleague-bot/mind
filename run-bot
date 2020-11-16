@@ -1,1 +1,2 @@
-python2 kinematics.py | python3 driver.py
+python3 kinematics.py | python3 driver.py --stdin
+
