@@ -207,11 +207,13 @@ def run():
         last_render = pygame.time.get_ticks()
     # run the game loop
     if(has_matplotlib):
+        bot.plot()
         matplotlib.pyplot.show()
 
     book_direction = 1
     speed = 4
-    time.sleep(10)
+    if(not has_matplotlib and not has_pygame):
+        time.sleep(10)
     while True:
         tick(8)
         if(book.openness <= 5 or book.openness >= 160):
